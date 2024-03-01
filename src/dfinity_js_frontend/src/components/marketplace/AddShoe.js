@@ -2,13 +2,15 @@ import React, { useState } from "react";
 import PropTypes from "prop-types";
 import { Button, Modal, Form, FloatingLabel } from "react-bootstrap";
 
-const AddProduct = ({ save }) => {
-  const [title, setTitle] = useState("");
-  const [attachmentURL, setImage] = useState("");
+const AddShoe = ({ save }) => {
+  const [name, setName] = useState("");
+  const [shoeURL, setImage] = useState("");
   const [description, setDescription] = useState("");
+  const [size, setSize] = useState("");
   const [location, setLocation] = useState("");
   const [price, setPrice] = useState(0);
-  const isFormFilled = () => title && attachmentURL && description && location && price;
+
+  const isFormFilled = () => name && shoeURL && description && size && location && price;
 
   const [show, setShow] = useState(false);
 
@@ -27,21 +29,21 @@ const AddProduct = ({ save }) => {
       </Button>
       <Modal show={show} onHide={handleClose} centered>
         <Modal.Header closeButton>
-          <Modal.Title>New Product</Modal.Title>
+          <Modal.Title>New Shoe</Modal.Title>
         </Modal.Header>
         <Form>
           <Modal.Body>
             <FloatingLabel
               controlId="inputName"
-              label="Product title"
+              label="Shoe name"
               className="mb-3"
             >
               <Form.Control
                 type="text"
                 onChange={(e) => {
-                  setTitle(e.target.value);
+                  setName(e.target.value);
                 }}
-                placeholder="Enter title of product"
+                placeholder="Enter name of shoe"
               />
             </FloatingLabel>
             <FloatingLabel
@@ -69,6 +71,19 @@ const AddProduct = ({ save }) => {
                 onChange={(e) => {
                   setDescription(e.target.value);
                 }}
+              />
+            </FloatingLabel>
+            <FloatingLabel
+              controlId="inputSize"
+              label="Shoe size"
+              className="mb-3"
+            >
+              <Form.Control
+                type="text"
+                onChange={(e) => {
+                  setSize(e.target.value);
+                }}
+                placeholder="Enter size of shoe"
               />
             </FloatingLabel>
             <FloatingLabel
@@ -108,16 +123,17 @@ const AddProduct = ({ save }) => {
             disabled={!isFormFilled()}
             onClick={() => {
               save({
-                title,
-                attachmentURL,
+                name,
+                shoeURL,
                 description,
+                size,
                 location,
                 price,
               });
               handleClose();
             }}
           >
-            Save product
+            Save shoe
           </Button>
         </Modal.Footer>
       </Modal>
@@ -125,8 +141,8 @@ const AddProduct = ({ save }) => {
   );
 };
 
-AddProduct.propTypes = {
+AddShoe.propTypes = {
   save: PropTypes.func.isRequired,
 };
 
-export default AddProduct;
+export default AddShoe;

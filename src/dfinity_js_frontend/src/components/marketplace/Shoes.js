@@ -1,25 +1,25 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { toast } from "react-toastify";
-import AddProduct from "./AddProduct";
-import Product from "./Product";
+import AddShoe from "./AddShoe";
+import Shoe from "./Shoe";
 import Loader from "../utils/Loader";
 import { Row } from "react-bootstrap";
 
 import { NotificationSuccess, NotificationError } from "../utils/Notifications";
 import {
-  getProducts as getProductList,
-  createProduct, buyProduct
+  getShoes as getShoeList,
+  createShoe, buyShoe
 } from "../../utils/marketplace";
 
-const Products = () => {
-  const [products, setProducts] = useState([]);
+const Shoes = () => {
+  const [shoes, setShoes] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // function to get the list of products
-  const getProducts = useCallback(async () => {
+  // function to get the list of shoe
+  const getShoes = useCallback(async () => {
     try {
       setLoading(true);
-      setProducts(await getProductList());
+      setShoes(await getShoeList());
     } catch (error) {
       console.log({ error });
     } finally {
@@ -27,18 +27,18 @@ const Products = () => {
     }
   });
 
-  const addProduct = async (data) => {
+  const addShoe = async (data) => {
     try {
       setLoading(true);
       const priceStr = data.price;
       data.price = parseInt(priceStr, 10) * 10**8;
-      createProduct(data).then((resp) => {
-        getProducts();
+      createShoe(data).then((resp) => {
+        getShoes();
       });
-      toast(<NotificationSuccess text="Product added successfully." />);
+      toast(<NotificationSuccess text="Shoe added successfully." />);
     } catch (error) {
       console.log({ error });
-      toast(<NotificationError text="Failed to create a product." />);
+      toast(<NotificationError text="Failed to create a shoe." />);
     } finally {
       setLoading(false);
     }
@@ -48,21 +48,21 @@ const Products = () => {
   const buy = async (id) => {
     try {
       setLoading(true);
-      await buyProduct({
+      await buyShoe({
         id
       }).then((resp) => {
-        getProducts();
-        toast(<NotificationSuccess text="Product bought successfully" />);
+        getShoes();
+        toast(<NotificationSuccess text="shoe bought successfully" />);
       });
     } catch (error) {
-      toast(<NotificationError text="Failed to purchase product." />);
+      toast(<NotificationError text="Failed to purchase shoe." />);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    getProducts();
+    getShoes();
   }, []);
 
   return (
@@ -70,14 +70,14 @@ const Products = () => {
       {!loading ? (
         <>
           <div className="d-flex justify-content-between align-items-center mb-4">
-            <h1 className="fs-4 fw-bold mb-0">Street Food</h1>
-            <AddProduct save={addProduct} />
+            <h1 className="fs-4 fw-bold mb-0">Shoes</h1>
+            <AddShoe save={addShoe} />
           </div>
           <Row xs={1} sm={2} lg={3} className="g-3  mb-5 g-xl-4 g-xxl-5">
-            {products.map((_product) => (
-              <Product
-                product={{
-                  ..._product,
+            {shoes.map((_shoe) => (
+              <Shoe
+                shoe={{
+                  ..._shoe,
                 }}
                 buy={buy}
               />
@@ -91,4 +91,4 @@ const Products = () => {
   );
 };
 
-export default Products;
+export default Shoes;
