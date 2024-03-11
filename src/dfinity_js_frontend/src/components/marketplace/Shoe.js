@@ -1,9 +1,18 @@
 import React from "react";
+import { useState } from 'react';
 import PropTypes from "prop-types";
 import { Card, Button, Col, Badge, Stack } from "react-bootstrap";
+import { FaTrash } from "react-icons/fa";
+import Modal from 'react-bootstrap/Modal';
 import { Principal } from "@dfinity/principal";
 
-const Shoe = ({ shoe, buy }) => {
+const Shoe = ({ shoe, buy, deleteShoe }) => {
+
+  const [show, setShow] = useState(false);
+
+  const handleClose = () => setShow(false);
+  const handleShow = () => setShow(true);
+
   const { id, price, name, description, location, shoeURL, size, seller, soldAmount } =
     shoe;
 
@@ -11,12 +20,17 @@ const Shoe = ({ shoe, buy }) => {
     buy(id);
   };
 
+  const triggerDelete = () => {
+    deleteShoe(id);
+  };
+
   return (
     <Col key={id}>
       <Card className=" h-100">
         <Card.Header>
           <Stack direction="horizontal" gap={2}>
-            <span className="font-monospace text-secondary">{Principal.from(seller).toText()}</span>
+            {/* <span className="font-monospace text-secondary">{Principal.from(seller).toText()}</span> */}
+            <FaTrash onClick={triggerDelete} style={{color: "red", cursor:"pointer",fontSize:"22px"}}/>
             <Badge bg="secondary" className="ms-auto">
               {soldAmount.toString()} Sold
             </Badge>
@@ -26,15 +40,48 @@ const Shoe = ({ shoe, buy }) => {
           <img src={shoeURL} alt={name} style={{ objectFit: "cover" }} />
         </div>
         <Card.Body className="d-flex  flex-column text-center">
-          <Card.Title>{name}</Card.Title>
-          <Card.Text className="flex-grow-1 ">{description}</Card.Text>
-          <Card.Text className="flex-grow-1 ">{size}</Card.Text>
-          <Card.Text className="text-secondary">
-            <span>{location}</span>
-          </Card.Text>
+     
+      <Button variant="success" onClick={handleShow}>
+        View shoe details
+      </Button>
+
+      <Modal show={show} onHide={handleClose}>
+        <Modal.Header closeButton>
+          <Modal.Title>Details</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+        <div className=" ratio ratio-4x3">
+          <img src={shoeURL} alt={name} style={{ objectFit: "cover" }} />
+        </div>
+        <Card.Title>{name}</Card.Title>
+          
+            <div className="text-uppercase fw-bold text-secondary">Description: </div>
+            <span>{description}</span>
+           
+          {/* <Card.Text className="flex-grow-1 "> */}
+          <div> 
+            <span className="text-uppercase fw-bold text-secondary">Size: </span>
+            <span>{size}</span>
+          </div>
+           
+            
+            {/* </Card.Text> */}
+         
+          {/* <Card.Text className="flex-grow-1">  */}
+          <div>  
+             <div className="text-uppercase fw-bold text-secondary">Location: </div>
+          <span>{location} </span> 
+          </div>
+       
+            
+          {/* </Card.Text> */}
           <Card.Text className="text-secondary">
             <span>{Principal.from(seller).toText()}</span>
           </Card.Text>
+         
+        </Modal.Body>
+        <Modal.Footer>
+         
           <Button
             variant="outline-dark"
             onClick={triggerBuy}
@@ -42,6 +89,9 @@ const Shoe = ({ shoe, buy }) => {
           >
             Buy for {(price / BigInt(10**8)).toString()} ICP
           </Button>
+        </Modal.Footer>
+      </Modal>
+ 
         </Card.Body>
       </Card>
     </Col>

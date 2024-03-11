@@ -83,6 +83,31 @@ getShoe: query([text], Result(Shoe, Message), (id) => {
     return Ok(productOpt.Some);
 }),
 
+
+//function that search for a shoe product
+//  searchShoe: query([text], Vec(Shoe), (name) => {
+//     // const shoes = shoesStorage.values();
+//     // return shoes.filter((shoes) =>
+//     //   shoes.name.toLowerCase().includes(name.toLowerCase())
+//     // );
+
+//     try {
+//         // const lowerCaseKeyword = keyword.toLowerCase();
+//         const result = shoesStorage.values().filter((shoe) => {
+//           const lowerCaseName = shoe.name.toLowerCase();
+//           const value = lowerCaseName.includes(name.toLowerCase());
+//           return value;
+//         });
+//         return Result.Ok(Shoe);
+//       } catch (error) {
+//         return Err({
+//             NotFound: `An error occurred while searching for shoe products err=${error}`,
+//           });
+//       }
+//   }),
+
+//   "An error occurred while searching for shoe products."
+
  addShoe: update([shoePayload], Result(Shoe, Message), (payload) => {
     if (typeof payload !== "object" || Object.keys(payload).length === 0) {
         return Err({ NotFound: "invalid payoad" })
@@ -101,13 +126,16 @@ updateShoe: update([Shoe], Result(Shoe, Message), (payload) => {
     return Ok(payload);
 }),
 
-deleteShoe: update([text], Result(text, Message), (id) => {
+deleteShoeById: update([text], Result(text, Message), (id) => {
     const deletedProductOpt = shoesStorage.remove(id);
     if ("None" in deletedProductOpt) {
         return Err({ NotFound: `cannot delete the shoe: shoe with id=${id} not found` });
     }
     return Ok(deletedProductOpt.Some.id);
 }),
+
+
+
 
 createOrder: update([text], Result(Order, Message), (id) => {
     const productOpt = shoesStorage.get(id);

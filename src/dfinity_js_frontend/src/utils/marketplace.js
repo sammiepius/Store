@@ -4,6 +4,9 @@ import { transferICP } from "./ledger";
 export async function createShoe(shoe) {
     return window.canister.marketplace.addShoe(shoe);
 }
+export async function deleteShoeById(id) {
+    return window.canister.marketplace.deleteShoeById(id);
+}
 
 export async function getShoes() {
     try {
