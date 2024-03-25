@@ -1,21 +1,24 @@
-import { query, update, text, Record, StableBTreeMap, Variant, Vec, None, Some, Ok, Err, ic, Principal, Opt, nat64, Duration, Result, bool, Canister } from "azle";
+import { query, update, text, Record, StableBTreeMap, Variant, Vec, None, Some, Ok, Err, ic, Principal, Opt, nat64, Duration, Result, bool, Canister, int8} from "azle";
 import {
     Ledger, binaryAddressFromAddress, binaryAddressFromPrincipal, hexAddressFromPrincipal
 } from "azle/canisters/ledger";
+// @ts-ignore
 import { hashCode } from "hashcode";
 import { v4 as uuidv4 } from "uuid";
 
+
+// Define record types for Shoe
 const Shoe = Record({
     id: text,
     name: text,
     description: text,
     location: text,
     price: nat64,
-    // quantity: text,
     size:text,
     seller: Principal,
     shoeURL: text,
-    soldAmount: nat64
+    soldAmount: nat64,
+    like: int8,
 });
 
 const shoePayload = Record({
@@ -26,7 +29,6 @@ const shoePayload = Record({
     size:text,
     shoeURL: text,
     
-    // quantity: text,
     
     
 });
@@ -47,12 +49,15 @@ const Order = Record({
 
 const Message = Variant({
     NotFound: text,
+    NotOwner:text,
+    Owner: text,
     InvalidPayload: text,
     PaymentFailed: text,
     PaymentCompleted: text
 });
 
-const shoesStorage = StableBTreeMap(0, text, Shoe);
+
+const shoesStorage = StableBTreeMap(0, text, Shoe); // Define a StableBTreeMap to store Shoe by their IDs
 const persistedOrders = StableBTreeMap(1, Principal, Order);
 const pendingOrders = StableBTreeMap(2, nat64, Order);
 
@@ -63,6 +68,7 @@ const icpCanister = Ledger(Principal.fromText("ryjl3-tyaaa-aaaaa-aaaba-cai"));
 
 export default Canister({
 
+// Query function to retrieve details of every shoe in store
 getShoes: query([], Vec(Shoe), () => {
     return shoesStorage.values();
 }),
@@ -75,6 +81,7 @@ getPendingOrders: query([], Vec(Order), () => {
     return pendingOrders.values();
 }),
 
+// Query function to retrieve details of a specific shoe by its ID
 getShoe: query([text], Result(Shoe, Message), (id) => {
     const productOpt = shoesStorage.get(id);
     if ("None" in productOpt) {
@@ -84,35 +91,27 @@ getShoe: query([text], Result(Shoe, Message), (id) => {
 }),
 
 
-//function that search for a shoe product
-//  searchShoe: query([text], Vec(Shoe), (name) => {
-//     // const shoes = shoesStorage.values();
-//     // return shoes.filter((shoes) =>
-//     //   shoes.name.toLowerCase().includes(name.toLowerCase())
-//     // );
 
-//     try {
-//         // const lowerCaseKeyword = keyword.toLowerCase();
-//         const result = shoesStorage.values().filter((shoe) => {
-//           const lowerCaseName = shoe.name.toLowerCase();
-//           const value = lowerCaseName.includes(name.toLowerCase());
-//           return value;
-//         });
-//         return Result.Ok(Shoe);
-//       } catch (error) {
-//         return Err({
-//             NotFound: `An error occurred while searching for shoe products err=${error}`,
-//           });
-//       }
-//   }),
-
-//   "An error occurred while searching for shoe products."
+//query function that search for a shoe product by name
+ searchShoe: query([text], Vec(Shoe), (name) => {
+    const shoes = shoesStorage.values();
+    return shoes.filter((shoes) =>
+      shoes.name.toLowerCase().includes(name.toLowerCase())
+    );
+  }),
 
  addShoe: update([shoePayload], Result(Shoe, Message), (payload) => {
     if (typeof payload !== "object" || Object.keys(payload).length === 0) {
         return Err({ NotFound: "invalid payoad" })
     }
-    const shoe = { id: uuidv4(), soldAmount: 0n, seller: ic.caller(), ...payload };
+    const shoe = {
+         id: uuidv4(), 
+         seller: ic.caller(),
+         soldAmount: 0n, 
+         like:0,
+         ...payload
+         
+     };
     shoesStorage.insert(shoe.id, shoe);
     return Ok(shoe);
 }),
@@ -126,14 +125,40 @@ updateShoe: update([Shoe], Result(Shoe, Message), (payload) => {
     return Ok(payload);
 }),
 
+ /**
+     * Delete a shoe by the shoe ID.
+     * @returns the deleted instance of the shoe or an error msg if the shoe ID doesn't exist.
+*/
 deleteShoeById: update([text], Result(text, Message), (id) => {
-    const deletedProductOpt = shoesStorage.remove(id);
-    if ("None" in deletedProductOpt) {
+    
+    const shoeOpt = shoesStorage.get(id);
+    if ("None" in shoeOpt) {
         return Err({ NotFound: `cannot delete the shoe: shoe with id=${id} not found` });
     }
+    if (shoeOpt.Some.seller.toString() !== ic.caller().toString()) {
+        return Err({ 
+            NotOwner: "only seller can delete shoe" 
+        });
+      }
+    const deletedProductOpt = shoesStorage.remove(id);
     return Ok(deletedProductOpt.Some.id);
 }),
 
+// Function that likes a shoe 
+likeShoe: update([text], Result(Shoe, Message), (id) => {
+    const likeOpt = shoesStorage.get(id);
+
+    if ("None" in likeOpt) {
+        return Err({ NotFound: `cannot like the shoe: shoe with id=${id} not found` });
+    }
+
+
+    const likes = likeOpt.Some;
+    likes.like += 1;
+
+    shoesStorage.insert(likes.id, likes)
+    return Ok(likes);
+}),
 
 
 

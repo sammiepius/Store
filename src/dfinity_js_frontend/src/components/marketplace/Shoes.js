@@ -10,7 +10,7 @@ import styled from 'styled-components';
 import { NotificationSuccess, NotificationError } from "../utils/Notifications";
 import {
   getShoes as getShoeList,
-  createShoe, buyShoe, deleteShoeById
+  createShoe, buyShoe, deleteShoeById, likeShoe
 } from "../../utils/marketplace";
 
 
@@ -43,7 +43,6 @@ const Shoes = () => {
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
 
-  // const urlParams = new URLSearchParams(window.location.search);
 
   // function to get the list of shoe
   const getShoes = useCallback(async () => {
@@ -57,14 +56,29 @@ const Shoes = () => {
     }
   });
 
-
+ // function to that delete a shoe
   const deleteShoe = async (id) => {
     try {
       setLoading(true);
-      // toast.success("please wait your request is been processed")
-      toast(<NotificationSuccess text="please wait your request is been processed." />);
+      // toast(<NotificationSuccess text="please wait your request is been processed." />);
       deleteShoeById(id).then((resp) => {
         toast(<NotificationSuccess text="Shoe deleted successfully." />);
+        getShoes();
+      });
+    } catch (error) {
+      console.log({ error });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+   // function that likes a shoe
+  const likeShoes = async (id) => {
+    try {
+      // setLoading(true);
+      // toast(<NotificationSuccess text="please wait your request is been processed." />);
+      likeShoe(id).then((resp) => {
+        toast(<NotificationSuccess text="Shoe liked successfully." />);
         getShoes();
       });
     } catch (error) {
@@ -91,23 +105,6 @@ const Shoes = () => {
     }
   };
 
-  // const searchShoes = async () => {
-    
-  //   const searched = search.toLowerCase();
-  //   try {
-  //     let filtered = shoes.filter(
-  //       (shoe) =>
-  //         (shoe.name.toLowerCase().includes(searched))
-        
-          
-  //     );
-  //     setShoes(filtered);
-  //   } catch (error) {
-  //     console.log({ error });
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
 
   //  function to initiate transaction
   const buy = async (id) => {
@@ -174,6 +171,7 @@ const handleChange = (e) => {
                 }}
                 buy={buy}
                 deleteShoe={deleteShoe}
+                likeShoes = {likeShoes}
               />
             ))}
           </Row>

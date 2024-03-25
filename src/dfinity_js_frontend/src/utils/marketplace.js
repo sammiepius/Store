@@ -7,6 +7,9 @@ export async function createShoe(shoe) {
 export async function deleteShoeById(id) {
     return window.canister.marketplace.deleteShoeById(id);
 }
+export async function likeShoe(id) {
+    return window.canister.marketplace.likeShoe(id);
+}
 
 export async function getShoes() {
     try {

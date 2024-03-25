@@ -99,6 +99,7 @@ const AddShoe = ({ save }) => {
                 }}
               />
             </FloatingLabel>
+          
             <FloatingLabel
               controlId="inputPrice"
               label="Price"

@@ -2,18 +2,18 @@ import React from "react";
 import { useState } from 'react';
 import PropTypes from "prop-types";
 import { Card, Button, Col, Badge, Stack } from "react-bootstrap";
-import { FaTrash } from "react-icons/fa";
+import { FaHeart, FaTrash } from "react-icons/fa";
 import Modal from 'react-bootstrap/Modal';
 import { Principal } from "@dfinity/principal";
 
-const Shoe = ({ shoe, buy, deleteShoe }) => {
+const Shoe = ({ shoe, buy, deleteShoe, likeShoes }) => {
 
   const [show, setShow] = useState(false);
 
   const handleClose = () => setShow(false);
   const handleShow = () => setShow(true);
 
-  const { id, price, name, description, location, shoeURL, size, seller, soldAmount } =
+  const { id, price, name, description, location, shoeURL,like, size, seller, soldAmount } =
     shoe;
 
   const triggerBuy = () => {
@@ -23,13 +23,15 @@ const Shoe = ({ shoe, buy, deleteShoe }) => {
   const triggerDelete = () => {
     deleteShoe(id);
   };
+  const triggerLike = () => {
+    likeShoes(id);
+  };
 
   return (
     <Col key={id}>
       <Card className=" h-100">
         <Card.Header>
           <Stack direction="horizontal" gap={2}>
-            {/* <span className="font-monospace text-secondary">{Principal.from(seller).toText()}</span> */}
             <FaTrash onClick={triggerDelete} style={{color: "red", cursor:"pointer",fontSize:"22px"}}/>
             <Badge bg="secondary" className="ms-auto">
               {soldAmount.toString()} Sold
@@ -40,11 +42,15 @@ const Shoe = ({ shoe, buy, deleteShoe }) => {
           <img src={shoeURL} alt={name} style={{ objectFit: "cover" }} />
         </div>
         <Card.Body className="d-flex  flex-column text-center">
-     
+  
+  <div style={{ display:'flex',alignItems: "left" }}>
+    <FaHeart style={{ color: "red", cursor: "pointer", fontSize: '20px' }} onClick={triggerLike}/>
+    <span style={{ fontWeight: "bold" }}>{like}</span>
+  </div>
       <Button variant="success" onClick={handleShow}>
         View shoe details
       </Button>
-
+      
       <Modal show={show} onHide={handleClose}>
         <Modal.Header closeButton>
           <Modal.Title>Details</Modal.Title>
@@ -55,26 +61,18 @@ const Shoe = ({ shoe, buy, deleteShoe }) => {
         </div>
         <Card.Title>{name}</Card.Title>
           
-            <div className="text-uppercase fw-bold text-secondary">Description: </div>
+            <div className="text-uppercase fw-bold text-secondary text-sm">Description: </div>
             <span>{description}</span>
            
-          {/* <Card.Text className="flex-grow-1 "> */}
           <div> 
             <span className="text-uppercase fw-bold text-secondary">Size: </span>
             <span>{size}</span>
           </div>
-           
-            
-            {/* </Card.Text> */}
-         
-          {/* <Card.Text className="flex-grow-1">  */}
+    
           <div>  
              <div className="text-uppercase fw-bold text-secondary">Location: </div>
           <span>{location} </span> 
           </div>
-       
-            
-          {/* </Card.Text> */}
           <Card.Text className="text-secondary">
             <span>{Principal.from(seller).toText()}</span>
           </Card.Text>
