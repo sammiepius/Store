@@ -16,24 +16,13 @@ export async function likeShoe(id) {
     return window.canister.marketplace.likeShoe(id);
 }
 
-
-// addComment
-export async function createComment(comment) {
-    return window.canister.marketplace.addComment(comment);
-}
-
-// getComment
-export async function getComments() {
-    return window.canister.marketplace.getComments();
-  }
-
-
 // getNoOfShoes
 export async function getNoOfShoes() {
     return window.canister.marketplace.getNoOfShoes();
   }
 
 
+//getShoe
 export async function getShoes() {
     try {
         return await window.canister.marketplace.getShoes();

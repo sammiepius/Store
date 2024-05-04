@@ -6,13 +6,6 @@ import {
 import { hashCode } from "hashcode";
 import { v4 as uuidv4 } from "uuid";
 
-
-const Comment = Record({
-    id: text,
-    comment: text,
-    // time: text,
-})
-
 // Define record types for Shoe
 const Shoe = Record({
     id: text,
@@ -28,7 +21,6 @@ const Shoe = Record({
 });
 
 
-
 const shoePayload = Record({
     name: text,
     description: text,
@@ -36,11 +28,6 @@ const shoePayload = Record({
     price: nat64,
     size:text,
     shoeURL: text,   
-});
-
-const commentPayload = Record({
-    // shoeId: text,
-    comment: text,  
 });
 
 const OrderStatus = Variant({
@@ -69,7 +56,6 @@ const Message = Variant({
 
 
 const shoesStorage = StableBTreeMap(0, text, Shoe); // Define a StableBTreeMap to store Shoe by their IDs
-const commentStorage = StableBTreeMap(1, text, Comment);
 const persistedOrders = StableBTreeMap(2, Principal, Order);
 const pendingOrders = StableBTreeMap(3, nat64, Order);
 
@@ -104,9 +90,7 @@ getShoe: query([text], Result(Shoe, Message), (id) => {
 }),
 
 
-
-
- addShoe: update([shoePayload], Result(Shoe, Message), (payload) => {
+addShoe: update([shoePayload], Result(Shoe, Message), (payload) => {
     if (typeof payload !== "object" || Object.keys(payload).length === 0) {
         return Err({ NotFound: "invalid payoad" })
     }
@@ -134,27 +118,9 @@ searchShoe: query([text], Vec(Shoe), (name) => {
 }),
 
 
-
-addComment: update([commentPayload], Result(Comment, Message), (payload) => {
-    if (typeof payload !== "object" || Object.keys(payload).length === 0) {
-        return Err({ InvalidPayload: "invalid payoad" })
-    }
-    const comments = { id: uuidv4(), ...payload};
-    commentStorage.insert(comments.id, comments);
-    return Ok(comments);
-} 
-),
-
-
-
-//  Get all the comment
- getComments: query([], Vec(Comment),() => {
-    return commentStorage.values();
-}),
-
- //function that gets all total numbers of shoe in the store 
+ //query function that gets  total numbers of shoes in store 
 getNoOfShoes: query([], int32, () => {
-    return Number(shoesStorage.len().toString()); // Return product count
+    return Number(shoesStorage.len().toString()); // Return shoe count
 }),
 
 

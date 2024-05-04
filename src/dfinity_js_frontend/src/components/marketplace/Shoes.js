@@ -11,9 +11,7 @@ import styled from 'styled-components';
 
 import { NotificationSuccess, NotificationError } from "../utils/Notifications";
 import {
-  getShoes as getShoeList,
-  getComments as getCommentList,
-  createShoe,createComment, buyShoe, deleteShoeById, likeShoe, getNoOfShoes
+  getShoes as getShoeList,createShoe, buyShoe, deleteShoeById, likeShoe, getNoOfShoes
 } from "../../utils/marketplace";
 
 
@@ -43,12 +41,9 @@ const Left = styled.div`
 
 const Shoes = () => {
   const [shoes, setShoes] = useState([]);
-  const [comments, setComments] = useState([]);
   const [shoe_no, setShoe_no] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
-
-  // console.log("part", shoe_no);
 
 
   // function to get the list of shoe
@@ -57,7 +52,6 @@ const Shoes = () => {
       // setLoading(true);
       setShoes(await getShoeList());
       setShoe_no(await getNoOfShoes());
-      //  console.log("part", getShoeList());
     } catch (error) {
       console.log({ error });
     } finally {
@@ -65,24 +59,12 @@ const Shoes = () => {
     }
   });
 
-  // function to get_comment
-  const getComments = useCallback(async () => {
-    try {
-      setLoading(true);
-      setComments(await getCommentList());
-    } catch (error) {
-      console.log({ error });
-    } finally {
-      setLoading(false);
-    }
-  });
 
-// gets the total numbers of shoe
+// gets the total numbers of shoe in store
   const getNoShoes = useCallback(async () => {
     try {
       setLoading(true);
       setShoe_no(await getNoOfShoes());
-      console.log("part", getNoOfShoes());
     } catch (error) {
       console.log({ error });
     } finally {
@@ -91,7 +73,7 @@ const Shoes = () => {
   });
 
 
- // function to that delete a shoe
+ // function that delete a shoe by the shoe id
   const deleteShoe = async (id) => {
     try {
       setLoading(true);
@@ -140,22 +122,7 @@ const Shoes = () => {
     }
   };
 
-  const addComment = async (data) => {
-    try {
-      setLoading(true);
-      createComment(data).then((resp) => {
-        getComments();
-      });
-      toast(<NotificationSuccess text="comment added successfully." />);
-    } catch (error) {
-      console.log({ error });
-      toast(<NotificationError text="Failed to create a shoe." />);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-
+ 
   //function to initiate transaction
   const buy = async (id) => {
     try {
@@ -175,10 +142,11 @@ const Shoes = () => {
 
   useEffect(() => {
     getShoes();
-    getComments();
     getNoShoes()
   }, []);
 
+
+// handle search change
 const handleChange = (e) => {
  const searchTerm = e.target.value;
    setSearch(searchTerm);
@@ -228,16 +196,7 @@ const handleChange = (e) => {
               </div>
               
             ))} 
-            {/* {comments.map((_comment) => (
-              <div> 
-                <Comment 
-             drop_comment={{
-              ..._comment,
-            }}
-             />
-             </div>
-            ))}
-            */}
+           
           </Row>
          
         </>
