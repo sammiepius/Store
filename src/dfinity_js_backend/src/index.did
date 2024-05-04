@@ -3,6 +3,7 @@ service: () -> {
     completePurchase: (principal, text, nat64, nat64, nat64) -> (variant {Ok:record {status:variant {PaymentPending:text; Completed:text}; shoeId:text; memo:nat64; seller:principal; price:nat64; paid_at_block:opt nat64}; Err:variant {PaymentFailed:text; InvalidPayload:text; NotFound:text; NotOwner:text; Owner:text; PaymentCompleted:text}});
     createOrder: (text) -> (variant {Ok:record {status:variant {PaymentPending:text; Completed:text}; shoeId:text; memo:nat64; seller:principal; price:nat64; paid_at_block:opt nat64}; Err:variant {PaymentFailed:text; InvalidPayload:text; NotFound:text; NotOwner:text; Owner:text; PaymentCompleted:text}});
     deleteShoeById: (text) -> (variant {Ok:text; Err:variant {PaymentFailed:text; InvalidPayload:text; NotFound:text; NotOwner:text; Owner:text; PaymentCompleted:text}});
+    getNoOfShoes: () -> (int32) query;
     getOrders: () -> (vec record {status:variant {PaymentPending:text; Completed:text}; shoeId:text; memo:nat64; seller:principal; price:nat64; paid_at_block:opt nat64}) query;
     getPendingOrders: () -> (vec record {status:variant {PaymentPending:text; Completed:text}; shoeId:text; memo:nat64; seller:principal; price:nat64; paid_at_block:opt nat64}) query;
     getShoe: (text) -> (variant {Ok:record {id:text; soldAmount:nat64; like:int8; name:text; size:text; description:text; seller:principal; shoeURL:text; price:nat64; location:text}; Err:variant {PaymentFailed:text; InvalidPayload:text; NotFound:text; NotOwner:text; Owner:text; PaymentCompleted:text}}) query;

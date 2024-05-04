@@ -67,11 +67,10 @@ const Shoe = ({ shoe, buy, deleteShoe, likeShoes }) => {
           <div> 
             <span className="text-uppercase fw-bold text-secondary">Size: </span>
             <span>{size}</span>
-          </div>
-    
+          </div>    
           <div>  
              <div className="text-uppercase fw-bold text-secondary">Location: </div>
-          <span>{location} </span> 
+             <span>{location} </span> 
           </div>
           <Card.Text className="text-secondary">
             <span>{Principal.from(seller).toText()}</span>

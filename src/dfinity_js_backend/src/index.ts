@@ -1,4 +1,4 @@
-import { query, update, text, Record, StableBTreeMap, Variant, Vec, None, Some, Ok, Err, ic, Principal, Opt, nat64, Duration, Result, bool, Canister, int8} from "azle";
+import { query, update, text, Record, StableBTreeMap, Variant, Vec, None, Some,int32, Ok, Err, ic, Principal, Opt, nat64, Duration, Result, bool, Canister, int8} from "azle";
 import {
     Ledger, binaryAddressFromAddress, binaryAddressFromPrincipal, hexAddressFromPrincipal
 } from "azle/canisters/ledger";
@@ -6,6 +6,12 @@ import {
 import { hashCode } from "hashcode";
 import { v4 as uuidv4 } from "uuid";
 
+
+const Comment = Record({
+    id: text,
+    comment: text,
+    // time: text,
+})
 
 // Define record types for Shoe
 const Shoe = Record({
@@ -21,16 +27,20 @@ const Shoe = Record({
     like: int8,
 });
 
+
+
 const shoePayload = Record({
     name: text,
     description: text,
     location: text,
     price: nat64,
     size:text,
-    shoeURL: text,
-    
-    
-    
+    shoeURL: text,   
+});
+
+const commentPayload = Record({
+    // shoeId: text,
+    comment: text,  
 });
 
 const OrderStatus = Variant({
@@ -47,6 +57,7 @@ const Order = Record({
     memo: nat64
 });
 
+// Define a Message variant for response messages
 const Message = Variant({
     NotFound: text,
     NotOwner:text,
@@ -58,8 +69,10 @@ const Message = Variant({
 
 
 const shoesStorage = StableBTreeMap(0, text, Shoe); // Define a StableBTreeMap to store Shoe by their IDs
-const persistedOrders = StableBTreeMap(1, Principal, Order);
-const pendingOrders = StableBTreeMap(2, nat64, Order);
+const commentStorage = StableBTreeMap(1, text, Comment);
+const persistedOrders = StableBTreeMap(2, Principal, Order);
+const pendingOrders = StableBTreeMap(3, nat64, Order);
+
 
 
 const ORDER_RESERVATION_PERIOD = 120n;
@@ -92,20 +105,15 @@ getShoe: query([text], Result(Shoe, Message), (id) => {
 
 
 
-//query function that search for a shoe product by name
- searchShoe: query([text], Vec(Shoe), (name) => {
-    const shoes = shoesStorage.values();
-    return shoes.filter((shoes) =>
-      shoes.name.toLowerCase().includes(name.toLowerCase())
-    );
-  }),
 
  addShoe: update([shoePayload], Result(Shoe, Message), (payload) => {
     if (typeof payload !== "object" || Object.keys(payload).length === 0) {
         return Err({ NotFound: "invalid payoad" })
     }
+
+    const shoeId = uuidv4();
     const shoe = {
-         id: uuidv4(), 
+         id: shoeId, 
          seller: ic.caller(),
          soldAmount: 0n, 
          like:0,
@@ -116,6 +124,41 @@ getShoe: query([text], Result(Shoe, Message), (id) => {
     return Ok(shoe);
 }),
 
+
+//query function that search for a shoe product by name
+searchShoe: query([text], Vec(Shoe), (name) => {
+    const shoes = shoesStorage.values();
+    return shoes.filter((shoes) =>
+      shoes.name.toLowerCase().includes(name.toLowerCase())
+    );
+}),
+
+
+
+addComment: update([commentPayload], Result(Comment, Message), (payload) => {
+    if (typeof payload !== "object" || Object.keys(payload).length === 0) {
+        return Err({ InvalidPayload: "invalid payoad" })
+    }
+    const comments = { id: uuidv4(), ...payload};
+    commentStorage.insert(comments.id, comments);
+    return Ok(comments);
+} 
+),
+
+
+
+//  Get all the comment
+ getComments: query([], Vec(Comment),() => {
+    return commentStorage.values();
+}),
+
+ //function that gets all total numbers of shoe in the store 
+getNoOfShoes: query([], int32, () => {
+    return Number(shoesStorage.len().toString()); // Return product count
+}),
+
+
+    
 updateShoe: update([Shoe], Result(Shoe, Message), (payload) => {
     const productOpt = shoesStorage.get(payload.id);
     if ("None" in productOpt) {
@@ -124,6 +167,7 @@ updateShoe: update([Shoe], Result(Shoe, Message), (payload) => {
     shoesStorage.insert(productOpt.Some.id, payload);
     return Ok(payload);
 }),
+
 
  /**
      * Delete a shoe by the shoe ID.

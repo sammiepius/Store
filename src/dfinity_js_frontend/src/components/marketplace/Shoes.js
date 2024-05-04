@@ -1,7 +1,9 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { toast } from "react-toastify";
 import AddShoe from "./AddShoe";
+import AddComment from "./AddComment";
 import Shoe from "./Shoe";
+import Comment from "./Comment";
 import Loader from "../utils/Loader";
 import { Row } from "react-bootstrap";
 import { FaSearch } from "react-icons/fa";
@@ -10,7 +12,8 @@ import styled from 'styled-components';
 import { NotificationSuccess, NotificationError } from "../utils/Notifications";
 import {
   getShoes as getShoeList,
-  createShoe, buyShoe, deleteShoeById, likeShoe
+  getComments as getCommentList,
+  createShoe,createComment, buyShoe, deleteShoeById, likeShoe, getNoOfShoes
 } from "../../utils/marketplace";
 
 
@@ -40,15 +43,21 @@ const Left = styled.div`
 
 const Shoes = () => {
   const [shoes, setShoes] = useState([]);
+  const [comments, setComments] = useState([]);
+  const [shoe_no, setShoe_no] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
+
+  // console.log("part", shoe_no);
 
 
   // function to get the list of shoe
   const getShoes = useCallback(async () => {
     try {
-      setLoading(true);
+      // setLoading(true);
       setShoes(await getShoeList());
+      setShoe_no(await getNoOfShoes());
+      //  console.log("part", getShoeList());
     } catch (error) {
       console.log({ error });
     } finally {
@@ -56,11 +65,37 @@ const Shoes = () => {
     }
   });
 
+  // function to get_comment
+  const getComments = useCallback(async () => {
+    try {
+      setLoading(true);
+      setComments(await getCommentList());
+    } catch (error) {
+      console.log({ error });
+    } finally {
+      setLoading(false);
+    }
+  });
+
+// gets the total numbers of shoe
+  const getNoShoes = useCallback(async () => {
+    try {
+      setLoading(true);
+      setShoe_no(await getNoOfShoes());
+      console.log("part", getNoOfShoes());
+    } catch (error) {
+      console.log({ error });
+    } finally {
+      setLoading(false);
+    }
+  });
+
+
  // function to that delete a shoe
   const deleteShoe = async (id) => {
     try {
       setLoading(true);
-      // toast(<NotificationSuccess text="please wait your request is been processed." />);
+      toast(<NotificationSuccess text="please wait your request is been processed." />);
       deleteShoeById(id).then((resp) => {
         toast(<NotificationSuccess text="Shoe deleted successfully." />);
         getShoes();
@@ -72,11 +107,9 @@ const Shoes = () => {
     }
   };
 
-   // function that likes a shoe
+  // function that likes a shoe
   const likeShoes = async (id) => {
     try {
-      // setLoading(true);
-      // toast(<NotificationSuccess text="please wait your request is been processed." />);
       likeShoe(id).then((resp) => {
         toast(<NotificationSuccess text="Shoe liked successfully." />);
         getShoes();
@@ -88,6 +121,7 @@ const Shoes = () => {
     }
   };
 
+  // add shoe to the store
   const addShoe = async (data) => {
     try {
       setLoading(true);
@@ -95,6 +129,7 @@ const Shoes = () => {
       data.price = parseInt(priceStr, 10) * 10**8;
       createShoe(data).then((resp) => {
         getShoes();
+             
       });
       toast(<NotificationSuccess text="Shoe added successfully." />);
     } catch (error) {
@@ -105,8 +140,23 @@ const Shoes = () => {
     }
   };
 
+  const addComment = async (data) => {
+    try {
+      setLoading(true);
+      createComment(data).then((resp) => {
+        getComments();
+      });
+      toast(<NotificationSuccess text="comment added successfully." />);
+    } catch (error) {
+      console.log({ error });
+      toast(<NotificationError text="Failed to create a shoe." />);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  //  function to initiate transaction
+
+  //function to initiate transaction
   const buy = async (id) => {
     try {
       setLoading(true);
@@ -123,10 +173,10 @@ const Shoes = () => {
     }
   };
 
-
-
   useEffect(() => {
     getShoes();
+    getComments();
+    getNoShoes()
   }, []);
 
 const handleChange = (e) => {
@@ -135,7 +185,6 @@ const handleChange = (e) => {
      if (searchTerm === "") {
         return getShoes();
    }
-
   const filtered = shoes.filter(
    (shoe) =>
         (shoe.name.toLowerCase().includes(searchTerm.toLowerCase()))  
@@ -160,21 +209,37 @@ const handleChange = (e) => {
             style={{ color: 'grey', fontSize: 25}} 
               />
           </SearchContainer>
+          <AddComment save={addComment}/>
+           <div>{shoe_no}</div>
         </Left>
-            <AddShoe save={addShoe} />
+          <AddShoe save={addShoe} />
           </div>
           <Row xs={1} sm={2} lg={3} className="g-3  mb-5 g-xl-4 g-xxl-5">
             {shoes.map((_shoe) => (
-              <Shoe
+              <div>
+               <Shoe
                 shoe={{
                   ..._shoe,
                 }}
                 buy={buy}
-                deleteShoe={deleteShoe}
+                deleteShoe = {deleteShoe}
                 likeShoes = {likeShoes}
-              />
+              />    
+              </div>
+              
+            ))} 
+            {/* {comments.map((_comment) => (
+              <div> 
+                <Comment 
+             drop_comment={{
+              ..._comment,
+            }}
+             />
+             </div>
             ))}
+            */}
           </Row>
+         
         </>
       ) : (
         <Loader />
