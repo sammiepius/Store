@@ -21,6 +21,14 @@ export async function getNoOfShoes() {
     return window.canister.marketplace.getNoOfShoes();
   }
 
+  //addComment
+export async function insertComment(id,comment) {
+    return window.canister.marketplace.insertComment(id,comment);
+  }
+//getComment
+export async function getComments() {
+    return window.canister.marketplace.getComments();
+  }
 
 //getShoe
 export async function getShoes() {

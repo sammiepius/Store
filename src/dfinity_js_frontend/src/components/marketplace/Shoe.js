@@ -5,6 +5,10 @@ import { Card, Button, Col, Badge, Stack } from "react-bootstrap";
 import { FaHeart, FaTrash } from "react-icons/fa";
 import Modal from 'react-bootstrap/Modal';
 import { Principal } from "@dfinity/principal";
+import {
+  insertComment
+} from "../../utils/marketplace";
+import AddComment from "./AddComment";
 
 const Shoe = ({ shoe, buy, deleteShoe, likeShoes }) => {
 
@@ -13,8 +17,24 @@ const Shoe = ({ shoe, buy, deleteShoe, likeShoes }) => {
   const handleClose = () => setShow(false);
   const handleShow = () => setShow(true);
 
-  const { id, price, name, description, location, shoeURL,like, size, seller, soldAmount } =
+  const { id, price, name, description, location, shoeURL,like, size, seller, soldAmount,comments } =
     shoe;
+
+
+    const addComment = async (shoeCommentId, comment) => {
+      console.log(shoeCommentId, comment)
+      try {
+          insertComment(shoeCommentId, comment).then
+          ((resp) => {
+              console.log({ resp });
+          });
+          window.location.reload();
+          toast(<NotificationSuccess text="Comment added successfully." />);
+      } catch (error) {
+          console.log({ error });
+          toast(<NotificationError text="Failed to create a Comment." />);
+      } 
+  };
 
   const triggerBuy = () => {
     buy(id);
@@ -72,6 +92,10 @@ const Shoe = ({ shoe, buy, deleteShoe, likeShoes }) => {
              <div className="text-uppercase fw-bold text-secondary">Location: </div>
              <span>{location} </span> 
           </div>
+          <div>  
+             <div className="text-uppercase fw-bold text-secondary">Comment: </div>
+             <span>{comments} </span> 
+          </div>
           <Card.Text className="text-secondary">
             <span>{Principal.from(seller).toText()}</span>
           </Card.Text>
@@ -86,6 +110,9 @@ const Shoe = ({ shoe, buy, deleteShoe, likeShoes }) => {
           >
             Buy for {(price / BigInt(10**8)).toString()} ICP
           </Button>
+          <Col>
+            <AddComment addComment={addComment} shoeId={id} />
+            </Col>
         </Modal.Footer>
       </Modal>
  

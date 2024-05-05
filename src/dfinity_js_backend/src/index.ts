@@ -18,9 +18,10 @@ const Shoe = Record({
     shoeURL: text,
     soldAmount: nat64,
     like: int8,
+    comments: text
 });
 
-
+// Define a shoe Payload record
 const shoePayload = Record({
     name: text,
     description: text,
@@ -35,6 +36,7 @@ const OrderStatus = Variant({
     Completed: text
 });
 
+// Define record types for Order
 const Order = Record({
     shoeId: text,
     price: nat64,
@@ -89,7 +91,7 @@ getShoe: query([text], Result(Shoe, Message), (id) => {
     return Ok(productOpt.Some);
 }),
 
-
+//create a shoe
 addShoe: update([shoePayload], Result(Shoe, Message), (payload) => {
     if (typeof payload !== "object" || Object.keys(payload).length === 0) {
         return Err({ NotFound: "invalid payoad" })
@@ -101,6 +103,7 @@ addShoe: update([shoePayload], Result(Shoe, Message), (payload) => {
          seller: ic.caller(),
          soldAmount: 0n, 
          like:0,
+         comments:"",
          ...payload
          
      };
@@ -118,7 +121,7 @@ searchShoe: query([text], Vec(Shoe), (name) => {
 }),
 
 
- //query function that gets  total numbers of shoes in store 
+ //query function that gets total numbers of shoes in store 
 getNoOfShoes: query([], int32, () => {
     return Number(shoesStorage.len().toString()); // Return shoe count
 }),
@@ -170,6 +173,27 @@ likeShoe: update([text], Result(Shoe, Message), (id) => {
     return Ok(likes);
 }),
 
+//add comment
+insertComment: update([text, text], Result(text, Message), (id, comment) => {
+    const shoeOpt = shoesStorage.get(id);
+    if ("None" in shoeOpt) {
+        return Err({ NotFound: `cannot add comment: shoe with id=${id} not found` });
+    }
+    const shoe = shoeOpt.Some;
+    shoe.comments = shoe.comments + "\n" + comment;
+    shoesStorage.insert(shoe.id, shoe);
+    return Ok(shoe.comments);
+}),
+
+
+//query function that gets comments
+getComments: query([text], text, (id) => {
+    const shoeOpt = shoesStorage.get(id);
+    if ("None" in shoeOpt) {
+        return "shoe with id=" + id + " not found";
+    }
+    return shoeOpt.Some.comments;
+}), 
 
 
 createOrder: update([text], Result(Order, Message), (id) => {

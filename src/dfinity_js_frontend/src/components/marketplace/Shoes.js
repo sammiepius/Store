@@ -1,11 +1,9 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { toast } from "react-toastify";
 import AddShoe from "./AddShoe";
-import AddComment from "./AddComment";
 import Shoe from "./Shoe";
-import Comment from "./Comment";
 import Loader from "../utils/Loader";
-import { Row } from "react-bootstrap";
+import { Row,Badge } from "react-bootstrap";
 import { FaSearch } from "react-icons/fa";
 import styled from 'styled-components';
 
@@ -24,7 +22,7 @@ const SearchContainer = styled.div`
   border: 0.5px solid lightgray;
   display: flex;
   align-items: center;
-  margin-left: 25px;
+  margin-left: 10px;
   padding: 5px;
 `;
 
@@ -32,6 +30,7 @@ const Left = styled.div`
   flex: 1;
   display: flex;
   align-items: center;
+  margin-left: 25%;
   `;
 
   const Input = styled.input`
@@ -165,6 +164,12 @@ const handleChange = (e) => {
       {!loading ? (
         <>
           <div className="d-flex justify-content-between align-items-center mb-4">
+          <div style={{display:"flex", justifyContent:"center", alignItems:"center" }}>
+         <strong>SHOES IN STORE:</strong>
+          <Badge bg="success" className="">
+            {shoe_no}
+          </Badge>
+          </div>
               <Left>
           <Language>EN</Language>
           <SearchContainer>
@@ -177,8 +182,7 @@ const handleChange = (e) => {
             style={{ color: 'grey', fontSize: 25}} 
               />
           </SearchContainer>
-          <AddComment save={addComment}/>
-           <div>{shoe_no}</div>
+        
         </Left>
           <AddShoe save={addShoe} />
           </div>
