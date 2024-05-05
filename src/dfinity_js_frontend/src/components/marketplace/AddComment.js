@@ -21,9 +21,13 @@ const AddComment = ({addComment, shoeId}) => {
             <Form>
                 <Modal.Body>
                     <FloatingLabel controlId="inputComment" label="Comment" className="mb-3">
-                        <Form.Control type="text" onChange={(e) => {
+                        <Form.Control as="textarea" 
+                        type="text" 
+                        onChange={(e) => {
                             setComment(e.target.value);
-                        }} placeholder="Enter comment" />
+                        }} 
+                        placeholder="Enter comment" 
+                        />
                     </FloatingLabel>
                 </Modal.Body>
                 <Modal.Footer>
