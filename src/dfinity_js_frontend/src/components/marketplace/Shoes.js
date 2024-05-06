@@ -41,6 +41,8 @@ const Left = styled.div`
 const Shoes = () => {
   const [shoes, setShoes] = useState([]);
   const [shoe_no, setShoe_no] = useState([]);
+  const [comment, setComment] = useState([]);
+
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
 

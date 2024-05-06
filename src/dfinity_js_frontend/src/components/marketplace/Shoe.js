@@ -13,16 +13,18 @@ import AddComment from "./AddComment";
 const Shoe = ({ shoe, buy, deleteShoe, likeShoes }) => {
 
   const [show, setShow] = useState(false);
+  const [show1, setShow1] = useState(false);
 
   const handleClose = () => setShow(false);
+  const handleClose1 = () => setShow1(false);
   const handleShow = () => setShow(true);
+  const handleShow1 = () => setShow1(true);
 
   const { id, price, name, description, location, shoeURL,like, size, seller, soldAmount,comments } =
     shoe;
 
 
     const addComment = async (shoeCommentId, comment) => {
-      console.log(shoeCommentId, comment)
       try {
           insertComment(shoeCommentId, comment).then
           ((resp) => {
@@ -92,10 +94,8 @@ const Shoe = ({ shoe, buy, deleteShoe, likeShoes }) => {
              <div className="text-uppercase fw-bold text-secondary">Location: </div>
              <span>{location} </span> 
           </div>
-          <div>  
-             <div className="text-uppercase fw-bold text-secondary">Comment: </div>
-             <span>{comments} </span> 
-          </div>
+                  
+          
           <Card.Text className="text-secondary">
             <span>{Principal.from(seller).toText()}</span>
           </Card.Text>
@@ -111,8 +111,27 @@ const Shoe = ({ shoe, buy, deleteShoe, likeShoes }) => {
             Buy for {(price / BigInt(10**8)).toString()} ICP
           </Button>
           <Col>
-            <AddComment addComment={addComment} shoeId={id} />
-            </Col>
+            <AddComment addComment={addComment} shoeId={id} /> 
+          </Col>
+      <div variant="success" style={{ color:"blue", cursor:"pointer"}}  onClick={handleShow1}>
+        <span>View comment</span>
+      </div>
+        <Modal show={show1} onHide={handleClose1} centered>
+            <Modal.Header closeButton>
+                <Modal.Title>Comments</Modal.Title>
+            </Modal.Header>
+                <Modal.Body>
+                   <span>{comments}</span> 
+                </Modal.Body>
+                <Modal.Footer>
+                    <Button variant="secondary" onClick={handleClose1}>
+                        Close
+                    </Button>
+                   
+                </Modal.Footer>
+        </Modal>
+
+         
         </Modal.Footer>
       </Modal>
  
