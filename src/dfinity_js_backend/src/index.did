@@ -15,4 +15,45 @@ service: () -> {
     searchShoe: (text) -> (vec record {id:text; soldAmount:nat64; like:int8; name:text; size:text; description:text; seller:principal; shoeURL:text; comments:text; price:nat64; location:text}) query;
     updateShoe: (record {id:text; soldAmount:nat64; like:int8; name:text; size:text; description:text; seller:principal; shoeURL:text; comments:text; price:nat64; location:text}) -> (variant {Ok:record {id:text; soldAmount:nat64; like:int8; name:text; size:text; description:text; seller:principal; shoeURL:text; comments:text; price:nat64; location:text}; Err:variant {PaymentFailed:text; InvalidPayload:text; NotFound:text; NotOwner:text; Owner:text; PaymentCompleted:text}});
     verifyPayment: (principal, nat64, nat64, nat64) -> (bool) query;
+    getShoesByLocation: (text) -> (vec record {
+    id: text;
+    soldAmount: nat64;
+    like: int8;
+    name: text;
+    size: text;
+    description: text;
+    seller: principal;
+    shoeURL: text;
+    comments: text;
+    price: nat64;
+    location: text;
+    }) query;
+
+    getShoesByPrice: (nat64, nat64) -> (vec record {
+    id: text;
+    soldAmount: nat64;
+    like: int8;
+    name: text;
+    size: text;
+    description: text;
+    seller: principal;
+    shoeURL: text;
+    comments: text;
+    price: nat64;
+    location: text;
+    }) query;
+
+    getShoesBySeller: (principal) -> (vec record {
+    id: text;
+    soldAmount: nat64;
+    like: int8;
+    name: text;
+    size: text;
+    description: text;
+    seller: principal;
+    shoeURL: text;
+    comments: text;
+    price: nat64;
+    location: text;
+    }) query;
 }
