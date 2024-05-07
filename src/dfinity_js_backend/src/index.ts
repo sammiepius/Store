@@ -1,4 +1,4 @@
-import { query, update, text, Record, StableBTreeMap, Variant, Vec, None, Some, int32, Ok, Err, ic, Principal, Opt, nat64, Duration, Result, bool, Canister, int8 } from "azle";
+import { query, update, text, Record, StableBTreeMap, Variant, Vec, None, Some,int32, Ok, Err, ic, Principal, Opt, nat64, Duration, Result, bool, Canister, int8} from "azle";
 import {
     Ledger, binaryAddressFromAddress, binaryAddressFromPrincipal, hexAddressFromPrincipal
 } from "azle/canisters/ledger";
@@ -56,6 +56,7 @@ const Message = Variant({
     PaymentCompleted: text
 });
 
+
 const shoesStorage = StableBTreeMap(0, text, Shoe); // Define a StableBTreeMap to store Shoe by their IDs
 const persistedOrders = StableBTreeMap(2, Principal, Order);
 const pendingOrders = StableBTreeMap(3, nat64, Order);
@@ -81,21 +82,6 @@ getPendingOrders: query([], Vec(Order), () => {
     return pendingOrders.values();
 }),
 
-getShoesByLocation: query([text], Vec(Shoe), (location) => {
-    const shoes = shoesStorage.values();
-    return shoes.filter((shoe) => shoe.location === location);
-  }),
-
-  getShoesByPrice: query([nat64, nat64], Vec(Shoe), (minPrice, maxPrice) => {
-    const shoes = shoesStorage.values();
-    return shoes.filter((shoe) => shoe.price >= minPrice && shoe.price <= maxPrice);
-  }),
-
-  getShoesBySeller: query([Principal], Vec(Shoe), (seller) => {
-    const shoes = shoesStorage.values();
-    return shoes.filter((shoe) => shoe.seller.toString() === seller.toString());
-  }),
-
 // Query function to retrieve details of a specific shoe by its ID
 getShoe: query([text], Result(Shoe, Message), (id) => {
     const productOpt = shoesStorage.get(id);
@@ -108,28 +94,19 @@ getShoe: query([text], Result(Shoe, Message), (id) => {
 //create a shoe
 addShoe: update([shoePayload], Result(Shoe, Message), (payload) => {
     if (typeof payload !== "object" || Object.keys(payload).length === 0) {
-        return Err({ InvalidPayload: "invalid payload" });
-    }
-
-    // Validate required fields
-    if (!payload.name || !payload.price) {
-        return Err({ InvalidPayload: "name and price are required" });
-    }
-
-    if (isNaN(payload.price) || payload.price <= 0) {
-        return Err({ InvalidPayload: "invalid price" });
+        return Err({ NotFound: "invalid payoad" })
     }
 
     const shoeId = uuidv4();
     const shoe = {
-        id: shoeId,
-        seller: ic.caller(),
-        soldAmount: 0n,
-        like: 0,
-        comments: "",
-        ...payload
-    };
-
+         id: shoeId, 
+         seller: ic.caller(),
+         soldAmount: 0n, 
+         like:0,
+         comments:"",
+         ...payload
+         
+     };
     shoesStorage.insert(shoe.id, shoe);
     return Ok(shoe);
 }),
@@ -203,7 +180,7 @@ insertComment: update([text, text], Result(text, Message), (id, comment) => {
         return Err({ NotFound: `cannot add comment: shoe with id=${id} not found` });
     }
     const shoe = shoeOpt.Some;
-    shoe.comments = shoe.comments ? `${shoe.comments}\n${comment}` : comment;
+    shoe.comments = shoe.comments + "\n" + comment;
     shoesStorage.insert(shoe.id, shoe);
     return Ok(shoe.comments);
 }),
@@ -331,10 +308,10 @@ function discardByTimeout(memo: nat64, delay: Duration) {
 
 async function verifyPaymentInternal(receiver: Principal, amount: nat64, block: nat64, memo: nat64): Promise<bool> {
     const blockData = await ic.call(icpCanister.query_blocks, { args: [{ start: block, length: 1n }] });
-    if (blockData.blocks.length === 0) {
-        return false;
-    }
     const tx = blockData.blocks.find((block) => {
+        if ("None" in block.transaction.operation) {
+            return false;
+        }
         const operation = block.transaction.operation.Some;
         const senderAddress = binaryAddressFromPrincipal(ic.caller(), 0);
         const receiverAddress = binaryAddressFromPrincipal(receiver, 0);
