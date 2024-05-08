@@ -1,19 +1,42 @@
-import { query, update, text, Record, StableBTreeMap, Variant, Vec, None, Some,int32, Ok, Err, ic, Principal, Opt, nat64, Duration, Result, bool, Canister, int8} from "azle";
+// Import necessary modules and types
 import {
-    Ledger, binaryAddressFromAddress, binaryAddressFromPrincipal, hexAddressFromPrincipal
-} from "azle/canisters/ledger";
-// @ts-ignore
-import { hashCode } from "hashcode";
+    query,
+    update,
+    text,
+    Record,
+    StableBTreeMap,
+    Variant,
+    Vec,
+    Principal,
+    Opt,
+    nat64,
+    Result,
+    bool,
+    Canister,
+    Duration
+} from "azle";
+import { Ledger, binaryAddressFromPrincipal, hexAddressFromPrincipal } from "azle/canisters/ledger";
 import { v4 as uuidv4 } from "uuid";
 
 // Define record types for Shoe
-const Shoe = Record({
+type ShoeId = string;
+type ShoeName = string;
+type Description = string;
+type Location = string;
+type Price = bigint;
+type Size = string;
+type ShoeURL = string;
+type SoldAmount = bigint;
+type Like = number;
+type Comments = string;
+
+const ShoeRecord = Record({
     id: text,
     name: text,
     description: text,
     location: text,
     price: nat64,
-    size:text,
+    size: text,
     seller: Principal,
     shoeURL: text,
     soldAmount: nat64,
@@ -22,223 +45,201 @@ const Shoe = Record({
 });
 
 // Define a shoe Payload record
-const shoePayload = Record({
-    name: text,
-    description: text,
-    location: text,
-    price: nat64,
-    size:text,
-    shoeURL: text,   
-});
+type ShoePayload = {
+    name: ShoeName,
+    description: Description,
+    location: Location,
+    price: Price,
+    size: Size,
+    shoeURL: ShoeURL
+};
 
-const OrderStatus = Variant({
+// Define record types for Order
+type OrderId = string;
+type PaymentPending = string;
+type Completed = string;
+type OrderStatus = PaymentPending | Completed;
+
+const OrderStatusVariant = Variant({
     PaymentPending: text,
     Completed: text
 });
 
-// Define record types for Order
-const Order = Record({
-    shoeId: text,
-    price: nat64,
+type OrderRecord = {
+    shoeId: ShoeId,
+    price: Price,
     status: OrderStatus,
     seller: Principal,
-    paid_at_block: Opt(nat64),
+    paidAtBlock: Opt<nat64>,
     memo: nat64
-});
+};
 
 // Define a Message variant for response messages
-const Message = Variant({
+type NotFound = string;
+type NotOwner = string;
+type Owner = string;
+type InvalidPayload = string;
+type PaymentFailed = string;
+type PaymentCompleted = string;
+
+const MessageVariant = Variant({
     NotFound: text,
-    NotOwner:text,
+    NotOwner: text,
     Owner: text,
     InvalidPayload: text,
     PaymentFailed: text,
     PaymentCompleted: text
 });
 
+// Define stable storage maps
+const shoesStorage = StableBTreeMap<ShoeId, ShoeRecord>(0);
+const persistedOrders = StableBTreeMap<Principal, OrderRecord>(2);
+const pendingOrders = StableBTreeMap<nat64, OrderRecord>(3);
 
-const shoesStorage = StableBTreeMap(0, text, Shoe); // Define a StableBTreeMap to store Shoe by their IDs
-const persistedOrders = StableBTreeMap(2, Principal, Order);
-const pendingOrders = StableBTreeMap(3, nat64, Order);
+const ORDER_RESERVATION_PERIOD: Duration = 120n;
 
-
-
-const ORDER_RESERVATION_PERIOD = 120n;
-
+// Define the Ledger canister
 const icpCanister = Ledger(Principal.fromText("ryjl3-tyaaa-aaaaa-aaaba-cai"));
 
-export default Canister({
+// Define the canister interface
+const ShoeMarket = Canister({
 
-// Query function to retrieve details of every shoe in store
-getShoes: query([], Vec(Shoe), () => {
-    return shoesStorage.values();
-}),
+    // Query function to retrieve details of every shoe in store
+    getShoes: query([], Vec(ShoeRecord), () => shoesStorage.values()),
 
-getOrders: query([], Vec(Order), () => {
-    return persistedOrders.values();
-}),
+    // Query function to retrieve details of a specific shoe by its ID
+    getShoe: query([text], Result(ShoeRecord, MessageVariant), (id) => {
+        const productOpt = shoesStorage.get(id);
+        if (!productOpt) {
+            return Result.Err({ NotFound: `Shoe with id=${id} not found` });
+        }
+        return Result.Ok(productOpt);
+    }),
 
-getPendingOrders: query([], Vec(Order), () => {
-    return pendingOrders.values();
-}),
+    // Function to add a new shoe to the market
+    addShoe: update([ShoePayload], Result(ShoeRecord, MessageVariant), (payload) => {
+        if (!payload) {
+            return Result.Err({ InvalidPayload: "Invalid payload" });
+        }
 
-// Query function to retrieve details of a specific shoe by its ID
-getShoe: query([text], Result(Shoe, Message), (id) => {
-    const productOpt = shoesStorage.get(id);
-    if ("None" in productOpt) {
-        return Err({ NotFound: `shoe with id=${id} not found` });
-    }
-    return Ok(productOpt.Some);
-}),
+        const shoeId = uuidv4();
+        const shoe: ShoeRecord = {
+            id: shoeId,
+            seller: ic.caller(),
+            soldAmount: 0n,
+            like: 0,
+            comments: "",
+            ...payload
+        };
+        shoesStorage.insert(shoeId, shoe);
+        return Result.Ok(shoe);
+    }),
 
-//create a shoe
-addShoe: update([shoePayload], Result(Shoe, Message), (payload) => {
-    if (typeof payload !== "object" || Object.keys(payload).length === 0) {
-        return Err({ NotFound: "invalid payoad" })
-    }
+    // Query function to search for shoes by name
+    searchShoe: query([text], Vec(ShoeRecord), (name) => {
+        const shoes = shoesStorage.values();
+        return shoes.filter((shoe) => shoe.name.toLowerCase().includes(name.toLowerCase()));
+    }),
 
-    const shoeId = uuidv4();
-    const shoe = {
-         id: shoeId, 
-         seller: ic.caller(),
-         soldAmount: 0n, 
-         like:0,
-         comments:"",
-         ...payload
-         
-     };
-    shoesStorage.insert(shoe.id, shoe);
-    return Ok(shoe);
-}),
+    // Function to get the total number of shoes in the store
+    getNoOfShoes: query([], int32, () => shoesStorage.len().toInt()),
 
+    // Function to update shoe details
+    updateShoe: update([ShoeRecord], Result(ShoeRecord, MessageVariant), (updatedShoe) => {
+        const shoeId = updatedShoe.id;
+        const existingShoe = shoesStorage.get(shoeId);
+        if (!existingShoe) {
+            return Result.Err({ NotFound: `Shoe with id=${shoeId} not found` });
+        }
+        shoesStorage.insert(shoeId, updatedShoe);
+        return Result.Ok(updatedShoe);
+    }),
 
-//query function that search for a shoe product by name
-searchShoe: query([text], Vec(Shoe), (name) => {
-    const shoes = shoesStorage.values();
-    return shoes.filter((shoes) =>
-      shoes.name.toLowerCase().includes(name.toLowerCase())
-    );
-}),
+    // Function to delete a shoe by its ID
+    deleteShoeById: update([text], Result(text, MessageVariant), (id) => {
+        const shoe = shoesStorage.get(id);
+        if (!shoe) {
+            return Result.Err({ NotFound: `Shoe with id=${id} not found` });
+        }
+        if (shoe.seller !== ic.caller()) {
+            return Result.Err({ NotOwner: "Only the seller can delete the shoe" });
+        }
+        shoesStorage.remove(id);
+        return Result.Ok(`Shoe with id=${id} deleted successfully`);
+    }),
 
+    // Function to like a shoe
+    likeShoe: update([text], Result(ShoeRecord, MessageVariant), (id) => {
+        const shoe = shoesStorage.get(id);
+        if (!shoe) {
+            return Result.Err({ NotFound: `Shoe with id=${id} not found` });
+        }
+        shoe.like++;
+        shoesStorage.insert(id, shoe);
+        return Result.Ok(shoe);
+    }),
 
- //query function that gets total numbers of shoes in store 
-getNoOfShoes: query([], int32, () => {
-    return Number(shoesStorage.len().toString()); // Return shoe count
-}),
+    // Function to insert a comment for a shoe
+    insertComment: update([text, text], Result(text, MessageVariant), (id, comment) => {
+        const shoe = shoesStorage.get(id);
+        if (!shoe) {
+            return Result.Err({ NotFound: `Shoe with id=${id} not found` });
+        }
+        shoe.comments += `\n${comment}`;
+        shoesStorage.insert(id, shoe);
+        return Result.Ok(`Comment added successfully for shoe with id=${id}`);
+    }),
 
+    // Function to get comments for a shoe
+    getComments: query([text], text, (id) => {
+        const shoe = shoesStorage.get(id);
+        if (!shoe) {
+            return "Shoe not found";
+        }
+        return shoe.comments;
+    }),
 
-    
-updateShoe: update([Shoe], Result(Shoe, Message), (payload) => {
-    const productOpt = shoesStorage.get(payload.id);
-    if ("None" in productOpt) {
-        return Err({ NotFound: `cannot update the shoe: shoe with id=${payload.id} not found` });
-    }
-    shoesStorage.insert(productOpt.Some.id, payload);
-    return Ok(payload);
-}),
+    // Function to create an order for a shoe
+    createOrder: update([text], Result(OrderRecord, MessageVariant), (shoeId) => {
+        const shoe = shoesStorage.get(shoeId);
+        if (!shoe) {
+            return Result.Err({ NotFound: `Shoe with id=${shoeId} not found` });
+        }
+        const order: OrderRecord = {
+            shoeId: shoe.id,
+            price: shoe.price,
+            status: "PaymentPending",
+            seller: shoe.seller,
+            paidAtBlock: null,
+            memo: generateCorrelationId(shoe.id)
+        };
+        pendingOrders.insert(order.memo, order);
+        discardByTimeout(order.memo, ORDER_RESERVATION_PERIOD);
+        return Result.Ok(order);
+    }),
 
+    // Function to complete a purchase
+    completePurchase: update([Principal, text, nat64, nat64, nat64], Result(OrderRecord, MessageVariant), async (seller, shoeId, price, block, memo) => {
+        const paymentVerified = await verifyPaymentInternal(seller, price, block, memo);
+        if (!paymentVerified) {
+            return Result.Err({ PaymentFailed: `Payment verification failed for memo=${memo}` });
+        }
+        const pendingOrder = pendingOrders.remove(memo);
+        if (!pendingOrder) {
+            return Result.Err({ NotFound: `Pending order with memo=${memo} not found` });
+        }
+        const updatedOrder: OrderRecord = { ...pendingOrder, status: "Completed", paidAtBlock: block };
+        const shoe = shoesStorage.get(shoeId);
+        if (!shoe) {
+            throw Error(`Shoe with id=${shoeId} not found`);
+        }
+        shoe.soldAmount++;
+        shoesStorage.insert(shoeId, shoe);
+        persistedOrders.insert(ic.caller(), updatedOrder);
+        return Result.Ok(updatedOrder);
+    }),
 
- /**
-     * Delete a shoe by the shoe ID.
-     * @returns the deleted instance of the shoe or an error msg if the shoe ID doesn't exist.
-*/
-deleteShoeById: update([text], Result(text, Message), (id) => {
-    
-    const shoeOpt = shoesStorage.get(id);
-    if ("None" in shoeOpt) {
-        return Err({ NotFound: `cannot delete the shoe: shoe with id=${id} not found` });
-    }
-    if (shoeOpt.Some.seller.toString() !== ic.caller().toString()) {
-        return Err({ 
-            NotOwner: "only seller can delete shoe" 
-        });
-      }
-    const deletedProductOpt = shoesStorage.remove(id);
-    return Ok(deletedProductOpt.Some.id);
-}),
-
-// Function that likes a shoe 
-likeShoe: update([text], Result(Shoe, Message), (id) => {
-    const likeOpt = shoesStorage.get(id);
-
-    if ("None" in likeOpt) {
-        return Err({ NotFound: `cannot like the shoe: shoe with id=${id} not found` });
-    }
-
-
-    const likes = likeOpt.Some;
-    likes.like += 1;
-
-    shoesStorage.insert(likes.id, likes)
-    return Ok(likes);
-}),
-
-//add comment
-insertComment: update([text, text], Result(text, Message), (id, comment) => {
-    const shoeOpt = shoesStorage.get(id);
-    if ("None" in shoeOpt) {
-        return Err({ NotFound: `cannot add comment: shoe with id=${id} not found` });
-    }
-    const shoe = shoeOpt.Some;
-    shoe.comments = shoe.comments + "\n" + comment;
-    shoesStorage.insert(shoe.id, shoe);
-    return Ok(shoe.comments);
-}),
-
-
-//query function that gets comments
-getComments: query([text], text, (id) => {
-    const shoeOpt = shoesStorage.get(id);
-    if ("None" in shoeOpt) {
-        return "shoe with id=" + id + " not found";
-    }
-    return shoeOpt.Some.comments;
-}), 
-
-
-createOrder: update([text], Result(Order, Message), (id) => {
-    const productOpt = shoesStorage.get(id);
-    if ("None" in productOpt) {
-        return Err({ NotFound: `cannot create the order: shoe=${id} not found` });
-    }
-    const shoe = productOpt.Some;
-    const order = {
-        shoeId: shoe.id,
-        price: shoe.price,
-        status: { PaymentPending: "PAYMENT_PENDING" },
-        seller: shoe.seller,
-        paid_at_block: None,
-        memo: generateCorrelationId(id)
-    };
-    pendingOrders.insert(order.memo, order);
-    discardByTimeout(order.memo, ORDER_RESERVATION_PERIOD);
-    return Ok(order);
-}),
-
-completePurchase: update([Principal, text, nat64, nat64, nat64], Result(Order, Message), async (seller, id, price, block, memo) => {
-    const paymentVerified = await verifyPaymentInternal(seller, price, block, memo);
-    if (!paymentVerified) {
-        return Err({ NotFound: `cannot complete the purchase: cannot verify the payment, memo=${memo}` });
-    }
-    const pendingOrderOpt = pendingOrders.remove(memo);
-    if ("None" in pendingOrderOpt) {
-        return Err({ NotFound: `cannot complete the purchase: there is no pending order with id=${id}` });
-    }
-    const order = pendingOrderOpt.Some;
-    const updatedOrder = { ...order, status: { Completed: "COMPLETED" }, paid_at_block: Some(block) };
-    const productOpt = shoesStorage.get(id);
-    if ("None" in productOpt) {
-        throw Error(`shoe with id=${id} not found`);
-    }
-    const shoe = productOpt.Some;
-    shoe.soldAmount += 1n;
-    shoesStorage.insert(shoe.id, shoe);
-    persistedOrders.insert(ic.caller(), updatedOrder);
-    return Ok(updatedOrder);
-}),
-
-
-verifyPayment: query([Principal, nat64, nat64, nat64], bool, async (receiver, amount, block, memo) => {
+ verifyPayment: query([Principal, nat64, nat64, nat64], bool, async (receiver, amount, block, memo) => {
     return await verifyPaymentInternal(receiver, amount, block, memo);
 }),
 
