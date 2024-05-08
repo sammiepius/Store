@@ -20,7 +20,7 @@ const Shoe = ({ shoe, buy, deleteShoe, likeShoes }) => {
   const handleShow = () => setShow(true);
   const handleShow1 = () => setShow1(true);
 
-  const { id, price, name, description, location, shoeURL,like, size, seller, soldAmount,comments } =
+  const { id, price, name, description, location, shoeURL,like, size, seller, soldAmount, comments } =
     shoe;
 
 
@@ -121,7 +121,7 @@ const Shoe = ({ shoe, buy, deleteShoe, likeShoes }) => {
                 <Modal.Title>Comments</Modal.Title>
             </Modal.Header>
                 <Modal.Body>
-                   <span>{comments}</span> 
+                   <span>{comments}</span>
                 </Modal.Body>
                 <Modal.Footer>
                     <Button variant="secondary" onClick={handleClose1}>

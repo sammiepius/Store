@@ -65,8 +65,10 @@ const pendingOrders = StableBTreeMap(3, nat64, Order);
 
 const ORDER_RESERVATION_PERIOD = 120n;
 
+// Define the Ledger canister
 const icpCanister = Ledger(Principal.fromText("ryjl3-tyaaa-aaaaa-aaaba-cai"));
 
+// Define the canister interface
 export default Canister({
 
 // Query function to retrieve details of every shoe in store
@@ -91,7 +93,7 @@ getShoe: query([text], Result(Shoe, Message), (id) => {
     return Ok(productOpt.Some);
 }),
 
-//create a shoe
+// Function to add a new shoe to the market
 addShoe: update([shoePayload], Result(Shoe, Message), (payload) => {
     if (typeof payload !== "object" || Object.keys(payload).length === 0) {
         return Err({ NotFound: "invalid payoad" })
@@ -127,21 +129,19 @@ getNoOfShoes: query([], int32, () => {
 }),
 
 
-    
+// Function to update shoe details
 updateShoe: update([Shoe], Result(Shoe, Message), (payload) => {
     const productOpt = shoesStorage.get(payload.id);
     if ("None" in productOpt) {
         return Err({ NotFound: `cannot update the shoe: shoe with id=${payload.id} not found` });
     }
+    
     shoesStorage.insert(productOpt.Some.id, payload);
     return Ok(payload);
 }),
 
 
- /**
-     * Delete a shoe by the shoe ID.
-     * @returns the deleted instance of the shoe or an error msg if the shoe ID doesn't exist.
-*/
+ // Function to delete a shoe by its ID
 deleteShoeById: update([text], Result(text, Message), (id) => {
     
     const shoeOpt = shoesStorage.get(id);
@@ -165,7 +165,6 @@ likeShoe: update([text], Result(Shoe, Message), (id) => {
         return Err({ NotFound: `cannot like the shoe: shoe with id=${id} not found` });
     }
 
-
     const likes = likeOpt.Some;
     likes.like += 1;
 
@@ -173,13 +172,15 @@ likeShoe: update([text], Result(Shoe, Message), (id) => {
     return Ok(likes);
 }),
 
-//add comment
+ 
+// Function to insert a comment for a shoe
 insertComment: update([text, text], Result(text, Message), (id, comment) => {
     const shoeOpt = shoesStorage.get(id);
     if ("None" in shoeOpt) {
         return Err({ NotFound: `cannot add comment: shoe with id=${id} not found` });
     }
     const shoe = shoeOpt.Some;
+
     shoe.comments = shoe.comments + "\n" + comment;
     shoesStorage.insert(shoe.id, shoe);
     return Ok(shoe.comments);
@@ -196,6 +197,7 @@ getComments: query([text], text, (id) => {
 }), 
 
 
+// Function to create an order for a shoe
 createOrder: update([text], Result(Order, Message), (id) => {
     const productOpt = shoesStorage.get(id);
     if ("None" in productOpt) {
@@ -215,6 +217,7 @@ createOrder: update([text], Result(Order, Message), (id) => {
     return Ok(order);
 }),
 
+ // Function to complete a purchase
 completePurchase: update([Principal, text, nat64, nat64, nat64], Result(Order, Message), async (seller, id, price, block, memo) => {
     const paymentVerified = await verifyPaymentInternal(seller, price, block, memo);
     if (!paymentVerified) {

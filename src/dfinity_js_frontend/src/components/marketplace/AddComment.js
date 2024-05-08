@@ -49,6 +49,6 @@ const AddComment = ({addComment, shoeId}) => {
 
 AddComment.propTypes = {
     addComment: PropTypes.func.isRequired,
-    shoeIdId: PropTypes.string.isRequired
+    shoeId: PropTypes.string.isRequired
 }
 export default AddComment
