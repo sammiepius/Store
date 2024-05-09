@@ -181,7 +181,7 @@ insertComment: update([text, text], Result(text, Message), (id, comment) => {
     }
     const shoe = shoeOpt.Some;
 
-    shoe.comments = shoe.comments + "\n" + comment;
+    shoe.comments += `\n${comment}`;
     shoesStorage.insert(shoe.id, shoe);
     return Ok(shoe.comments);
 }),
