@@ -18,11 +18,12 @@ const Shoe = Record({
     shoeURL: text,
     soldAmount: nat64,
     like: int8,
-    comments: text
+    liked: Vec(text),
+    comments: Vec(text)
 });
 
 // Define a shoe Payload record
-const shoePayload = Record({
+const ShoePayload = Record({
     name: text,
     description: text,
     location: text,
@@ -53,7 +54,8 @@ const Message = Variant({
     Owner: text,
     InvalidPayload: text,
     PaymentFailed: text,
-    PaymentCompleted: text
+    PaymentCompleted: text,
+    AlreadyLiked: text,
 });
 
 
@@ -86,6 +88,9 @@ getPendingOrders: query([], Vec(Order), () => {
 
 // Query function to retrieve details of a specific shoe by its ID
 getShoe: query([text], Result(Shoe, Message), (id) => {
+    if(!isValidUuid(id)){
+        return Err({InvalidPayload: `Id=${id} is not in the valid uuid format.`})
+    }
     const productOpt = shoesStorage.get(id);
     if ("None" in productOpt) {
         return Err({ NotFound: `shoe with id=${id} not found` });
@@ -94,9 +99,14 @@ getShoe: query([text], Result(Shoe, Message), (id) => {
 }),
 
 // Function to add a new shoe to the market
-addShoe: update([shoePayload], Result(Shoe, Message), (payload) => {
+addShoe: update([ShoePayload], Result(Shoe, Message), (payload) => {
     if (typeof payload !== "object" || Object.keys(payload).length === 0) {
         return Err({ NotFound: "invalid payoad" })
+    }
+    // @ts-ignore
+    const validatePayloadErrors = validateShoePayload(payload);
+    if (validatePayloadErrors.length){
+        return Err({InvalidPayload: `Invalid payload. Errors=[${validatePayloadErrors}]`});
     }
 
     const shoeId = uuidv4();
@@ -105,7 +115,8 @@ addShoe: update([shoePayload], Result(Shoe, Message), (payload) => {
          seller: ic.caller(),
          soldAmount: 0n, 
          like:0,
-         comments:"",
+         liked: [],
+         comments:[],
          ...payload
          
      };
@@ -130,20 +141,35 @@ getNoOfShoes: query([], int32, () => {
 
 
 // Function to update shoe details
-updateShoe: update([Shoe], Result(Shoe, Message), (payload) => {
-    const productOpt = shoesStorage.get(payload.id);
-    if ("None" in productOpt) {
-        return Err({ NotFound: `cannot update the shoe: shoe with id=${payload.id} not found` });
+updateShoe: update([text, ShoePayload], Result(Shoe, Message), (id, payload) => {
+    if(!isValidUuid(id)){
+        return Err({InvalidPayload: `Id=${id} is not in the valid uuid format.`})
     }
-    
-    shoesStorage.insert(productOpt.Some.id, payload);
-    return Ok(payload);
+    // @ts-ignore
+    const validatePayloadErrors = validateShoePayload(payload);
+    if (validatePayloadErrors.length){
+        return Err({InvalidPayload: `Invalid payload. Errors=[${validatePayloadErrors}]`});
+    }
+
+    const productOpt = shoesStorage.get(id);
+    if ("None" in productOpt) {
+        return Err({ NotFound: `cannot update the shoe: shoe with id=${id} not found` });
+    }
+    const product = productOpt.Some; 
+    if(product.seller.toString() !== ic.caller().toString()){
+        return Err({NotOwner: "You are not the seller of this shoe"})
+    }
+    let updatedProduct = {...product, ...payload};
+    shoesStorage.insert(product.id, updatedProduct);
+    return Ok(updatedProduct);
 }),
 
 
  // Function to delete a shoe by its ID
 deleteShoeById: update([text], Result(text, Message), (id) => {
-    
+    if(!isValidUuid(id)){
+        return Err({InvalidPayload: `Id=${id} is not in the valid uuid format.`})
+    }
     const shoeOpt = shoesStorage.get(id);
     if ("None" in shoeOpt) {
         return Err({ NotFound: `cannot delete the shoe: shoe with id=${id} not found` });
@@ -159,46 +185,64 @@ deleteShoeById: update([text], Result(text, Message), (id) => {
 
 // Function that likes a shoe 
 likeShoe: update([text], Result(Shoe, Message), (id) => {
-    const likeOpt = shoesStorage.get(id);
+    if(!isValidUuid(id)){
+        return Err({InvalidPayload: `Id=${id} is not in the valid uuid format.`})
+    }
+    const shoeOpt = shoesStorage.get(id);
 
-    if ("None" in likeOpt) {
+    if ("None" in shoeOpt) {
         return Err({ NotFound: `cannot like the shoe: shoe with id=${id} not found` });
     }
+    const shoe = shoeOpt.Some;
+    if(shoe.liked.includes(ic.caller().toString())){
+        return Err({AlreadyLiked: "Caller has already liked this shoe"})
+    }
+    shoe.like += 1;
+    shoe.liked.push(ic.caller().toString());
 
-    const likes = likeOpt.Some;
-    likes.like += 1;
-
-    shoesStorage.insert(likes.id, likes)
-    return Ok(likes);
+    shoesStorage.insert(shoe.id, shoe)
+    return Ok(shoe);
 }),
 
  
 // Function to insert a comment for a shoe
-insertComment: update([text, text], Result(text, Message), (id, comment) => {
+insertComment: update([text, text], Result(Vec(text), Message), (id, comment) => {
+    if(!isValidUuid(id)){
+        return Err({InvalidPayload: `Id=${id} is not in the valid uuid format.`})
+    }
+    if(isInvalidString(comment)){
+        return Err({InvalidPayload: `Comment cannot be empty`})
+    }
     const shoeOpt = shoesStorage.get(id);
     if ("None" in shoeOpt) {
         return Err({ NotFound: `cannot add comment: shoe with id=${id} not found` });
     }
     const shoe = shoeOpt.Some;
 
-    shoe.comments += `\n${comment}`;
+    shoe.comments.push(comment);
     shoesStorage.insert(shoe.id, shoe);
     return Ok(shoe.comments);
 }),
 
 
 //query function that gets comments
-getComments: query([text], text, (id) => {
+getComments: query([text], Result(Vec(text), Message), (id) => {
+    if(!isValidUuid(id)){
+        return Err({InvalidPayload: `Id=${id} is not in the valid uuid format.`})
+    }
     const shoeOpt = shoesStorage.get(id);
     if ("None" in shoeOpt) {
-        return "shoe with id=" + id + " not found";
+        return Err({InvalidPayload: "shoe with id=" + id + " not found"});
     }
-    return shoeOpt.Some.comments;
+    return Ok(shoeOpt.Some.comments);
 }), 
 
 
 // Function to create an order for a shoe
 createOrder: update([text], Result(Order, Message), (id) => {
+    if(!isValidUuid(id)){
+        return Err({InvalidPayload: `Id=${id} is not in the valid uuid format.`})
+    }
     const productOpt = shoesStorage.get(id);
     if ("None" in productOpt) {
         return Err({ NotFound: `cannot create the order: shoe=${id} not found` });
@@ -325,3 +369,46 @@ async function verifyPaymentInternal(receiver: Principal, amount: nat64, block: 
     });
     return tx ? true : false;
 };
+
+
+// Helper function that trims the input string and then checks the length
+// The string is empty if true is returned, otherwise, string is a valid value
+function isInvalidString(str: text): boolean {
+    return str.trim().length == 0
+  }
+
+  // Helper function to ensure the input id meets the format used for ids generated by uuid
+  function isValidUuid(id: string): boolean {
+    const regexExp = /^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$/gi;
+    return regexExp.test(id);
+}
+
+
+  /**
+  * Helper function to validate the ShoePayload
+  */
+  function validateShoePayload(payload: typeof ShoePayload): Vec<string>{
+    const errors: Vec<text> = [];
+    // @ts-ignore
+    if (isInvalidString(payload.name)){
+        errors.push(`name='${payload.name}' cannot be empty.`)
+    }
+    // @ts-ignore
+    if (isInvalidString(payload.description)){
+        errors.push(`description='${payload.description}' cannot be empty.`)
+    }
+    // @ts-ignore
+    if (isInvalidString(payload.location)){
+        errors.push(`location='${payload.location}' cannot be empty.`)
+    }
+    // @ts-ignore
+    if (isInvalidString(payload.shoeURL)){
+        errors.push(`shoeURL='${payload.shoeURL}' cannot be empty.`)
+    }
+    // @ts-ignore
+    if (isInvalidString(payload.size)){
+        errors.push(`size='${payload.size}' cannot be empty.`)
+    }
+    return errors;
+  }
+
