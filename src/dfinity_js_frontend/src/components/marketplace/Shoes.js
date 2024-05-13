@@ -93,7 +93,7 @@ const Shoes = () => {
   const likeShoes = async (id) => {
     try {
       likeShoe(id).then((resp) => {
-        toast(<NotificationSuccess text="Shoe liked successfully." />);
+        // toast(<NotificationSuccess text="Shoe liked successfully." />);
         getShoes();
       });
     } catch (error) {
